@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mapbox/turf-swift.git",
       "state" : {
-        "revision" : "213050191cfcb3d5aa76e1fa90c6ff1e182a42ca",
-        "version" : "2.8.0"
+        "revision" : "0ab7b51126bfa6560428323993cfdb3767c59060",
+        "version" : "3.1.0"
       }
     }
   ],

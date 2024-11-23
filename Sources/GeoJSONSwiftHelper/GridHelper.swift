@@ -226,7 +226,7 @@ public struct GridHelper {
 
       let geoObj = boundary
       var feature = Turf.Feature(geometry: geoObj)
-      feature.properties = JSONObject(rawValue: ["id": id])
+      feature.properties = JSONObject(turfRawValue: ["id": id])
 
       if let geoData = try? JSONEncoder().encode(feature),
          let geoString = String(data: geoData, encoding: .utf8) {
