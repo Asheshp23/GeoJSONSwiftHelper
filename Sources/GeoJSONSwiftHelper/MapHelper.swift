@@ -40,7 +40,8 @@ extension MKCoordinateRegion: @retroactive Equatable {
 
 extension CLLocationCoordinate2D: @retroactive Comparable {
   public static func < (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
-    return lhs.latitude < rhs.latitude && lhs.longitude < rhs.longitude
+    // Lexicographic: latitude first, longitude breaks ties.
+    return (lhs.latitude, lhs.longitude) < (rhs.latitude, rhs.longitude)
   }
 }
 
