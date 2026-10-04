@@ -85,33 +85,13 @@ extension GeoJSONObject {
     }
   }
 
-  public var center: CLLocationCoordinate2D {
-    var maxLatitude: Double = -200
-    var maxLongitude: Double = -200
-    var minLatitude: Double = Double(MAXFLOAT)
-    var minLongitude: Double = Double(MAXFLOAT)
-
-    for location in self.coordinates {
-      if location.latitude < minLatitude {
-        minLatitude = location.latitude
-      }
-
-      if location.longitude < minLongitude {
-        minLongitude = location.longitude
-      }
-
-      if location.latitude > maxLatitude {
-        maxLatitude = location.latitude
-      }
-
-      if location.longitude > maxLongitude {
-        maxLongitude = location.longitude
-      }
-    }
+  /// The center of `bounds`, or `nil` if there are no coordinates.
+  public var center: CLLocationCoordinate2D? {
+    guard let bounds else { return nil }
 
     return CLLocationCoordinate2DMake(
-      CLLocationDegrees((maxLatitude + minLatitude) * 0.5),
-      CLLocationDegrees((maxLongitude + minLongitude) * 0.5))
+      (bounds.southwest.latitude + bounds.northeast.latitude) * 0.5,
+      (bounds.southwest.longitude + bounds.northeast.longitude) * 0.5)
   }
 
   /// The axis-aligned bounding box of all coordinates, or `nil` if there are none
