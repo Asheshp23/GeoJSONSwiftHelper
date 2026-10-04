@@ -21,10 +21,11 @@ extension GeoJSONObject {
     switch self {
     case .geometry(let geometry):
       return getCoordinates(from: geometry)
+    // Features may have null geometry; they contribute no coordinates.
     case .feature(let feature):
-      return getCoordinates(from: feature.geometry!)
+      return feature.geometry.map(getCoordinates(from:)) ?? []
     case .featureCollection(let featureCollection):
-      return featureCollection.features.flatMap { getCoordinates(from: $0.geometry!) }
+      return featureCollection.features.flatMap { $0.geometry.map(getCoordinates(from:)) ?? [] }
     }
   }
 
