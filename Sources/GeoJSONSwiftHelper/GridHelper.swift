@@ -188,25 +188,9 @@ public struct GridHelper {
                         bearingRadians: hLineMvmtDirection)
 
     let coords = [tl, tr, bl, br, tl]
-    let geoJSONString = createGeoJSONString(from: coords)
-    guard let geoJSONObject = GeoJSONObject.create(from: geoJSONString ?? "") else { return GridPolygonOverlay() }
-
-    return GridPolygonOverlay.create(geoJSONObject)
-  }
-
-  static private func createGeoJSONString(from coordinates: [CLLocationCoordinate2D]) -> String? {
-    let polygon = Turf.Polygon([coordinates])
-    let geometry = Turf.Geometry(polygon)
-    let feature = Turf.Feature(geometry: geometry)
-    do {
-      let data = try JSONEncoder().encode(feature)
-      if let geoJSONString = String(bytes: data, encoding: .utf8) {
-        return geoJSONString
-      }
-    } catch let error as NSError {
-      print(error.localizedDescription)
-    }
-    return nil
+    let overlay = GridPolygonOverlay()
+    overlay.boundary = Turf.MultiPolygon([Turf.Polygon([coords])])
+    return overlay
   }
 
   public class GridPolygonOverlay: MKPolygon, Identifiable, Comparable {
