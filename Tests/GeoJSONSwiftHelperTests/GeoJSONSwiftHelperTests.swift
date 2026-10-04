@@ -174,6 +174,24 @@ struct SourceDataEqualityTests {
   }
 }
 
+// MARK: - SwiftUI map content
+
+@Suite("Map content")
+struct MapContentTests {
+  @Test func polygonHolesArePreserved() throws {
+    let json = """
+    {"type":"Polygon","coordinates":[
+      [[0,0],[4,0],[4,4],[0,4],[0,0]],
+      [[1,1],[2,1],[2,2],[1,2],[1,1]]
+    ]}
+    """
+    let polygon = try #require(object(json).polygons?.first)
+    let mkPolygon = polygon.mkPolygon
+    #expect(mkPolygon.pointCount == 5)
+    #expect(mkPolygon.interiorPolygons?.count == 1)
+  }
+}
+
 // MARK: - Grid
 
 @Suite("Grid intersection")

@@ -436,14 +436,7 @@ extension Turf.MultiLineString {
 
 extension Turf.Polygon {
   var overlay: MKOverlay {
-    let interiorOverlays = self.innerRings.map({
-      MKPolygon(coordinates: $0.coordinates, count: $0.coordinates.count)
-    })
-    let overlay = MKPolygon(
-      coordinates: self.outerRing.coordinates,
-      count: self.outerRing.coordinates.count,
-      interiorPolygons: interiorOverlays)
-    return overlay
+    mkPolygon
   }
 }
 
