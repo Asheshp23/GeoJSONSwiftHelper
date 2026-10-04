@@ -282,6 +282,12 @@ extension GeoJSONSourceData: Equatable {
       return lhsURL == rhsURL
     case (let .feature(lhsFeature), let .feature(rhsFeature)):
       return lhsFeature == rhsFeature
+    case (let .featureCollection(lhsCollection), let .featureCollection(rhsCollection)):
+      return lhsCollection == rhsCollection
+    case (let .geometry(lhsGeometry), let .geometry(rhsGeometry)):
+      return lhsGeometry == rhsGeometry
+    case (.empty, .empty):
+      return true
     default:
       return false
     }
