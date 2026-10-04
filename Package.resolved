@@ -1,4 +1,5 @@
 {
+  "originHash" : "f9ea2430ca0a0ae3f4b53de9ee17722e2373c3f0617ea8a798f974effa41c0eb",
   "pins" : [
     {
       "identity" : "geos",
@@ -23,10 +24,10 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mapbox/turf-swift.git",
       "state" : {
-        "revision" : "0ab7b51126bfa6560428323993cfdb3767c59060",
-        "version" : "3.1.0"
+        "revision" : "bf840e6b9529d105687840fe2c9dcd74197d46d1",
+        "version" : "4.0.0"
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }
