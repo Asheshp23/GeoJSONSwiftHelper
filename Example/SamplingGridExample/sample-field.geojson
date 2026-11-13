@@ -1,0 +1,46 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Example Field - North Parcel", "note": "Invented sample data" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-80.8030, 43.5020],
+            [-80.8028, 43.5004],
+            [-80.7975, 43.5006],
+            [-80.7978, 43.5022],
+            [-80.8003, 43.5025],
+            [-80.8030, 43.5020]
+          ],
+          [
+            [-80.8005, 43.5015],
+            [-80.7998, 43.5016],
+            [-80.7996, 43.5011],
+            [-80.8004, 43.5010],
+            [-80.8005, 43.5015]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Example Field - South Parcel", "note": "Invented sample data" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-80.8027, 43.5003],
+            [-80.8025, 43.4994],
+            [-80.8000, 43.4990],
+            [-80.7980, 43.4992],
+            [-80.7975, 43.5005],
+            [-80.8027, 43.5003]
+          ]
+        ]
+      }
+    }
+  ]
+}

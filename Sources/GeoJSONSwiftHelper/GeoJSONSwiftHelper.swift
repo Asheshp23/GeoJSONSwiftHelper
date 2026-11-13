@@ -21,10 +21,11 @@ extension GeoJSONObject {
     switch self {
     case .geometry(let geometry):
       return getCoordinates(from: geometry)
+    // Features may have null geometry; they contribute no coordinates.
     case .feature(let feature):
-      return getCoordinates(from: feature.geometry!)
+      return feature.geometry.map(getCoordinates(from:)) ?? []
     case .featureCollection(let featureCollection):
-      return featureCollection.features.flatMap { getCoordinates(from: $0.geometry!) }
+      return featureCollection.features.flatMap { $0.geometry.map(getCoordinates(from:)) ?? [] }
     }
   }
 
@@ -84,98 +85,67 @@ extension GeoJSONObject {
     }
   }
 
-  public var center: CLLocationCoordinate2D {
-    var maxLatitude: Double = -200
-    var maxLongitude: Double = -200
-    var minLatitude: Double = Double(MAXFLOAT)
-    var minLongitude: Double = Double(MAXFLOAT)
-
-    for location in self.coordinates {
-      if location.latitude < minLatitude {
-        minLatitude = location.latitude
-      }
-
-      if location.longitude < minLongitude {
-        minLongitude = location.longitude
-      }
-
-      if location.latitude > maxLatitude {
-        maxLatitude = location.latitude
-      }
-
-      if location.longitude > maxLongitude {
-        maxLongitude = location.longitude
-      }
-    }
+  /// The center of `bounds`, or `nil` if there are no coordinates.
+  public var center: CLLocationCoordinate2D? {
+    guard let bounds else { return nil }
 
     return CLLocationCoordinate2DMake(
-      CLLocationDegrees((maxLatitude + minLatitude) * 0.5),
-      CLLocationDegrees((maxLongitude + minLongitude) * 0.5))
+      (bounds.southwest.latitude + bounds.northeast.latitude) * 0.5,
+      (bounds.southwest.longitude + bounds.northeast.longitude) * 0.5)
   }
 
-  public var bounds: CoordinateBounds {
-    var maxN = CLLocationDegrees(), maxS = CLLocationDegrees(), maxE = CLLocationDegrees(), maxW = CLLocationDegrees()
+  /// The axis-aligned bounding box of all coordinates, or `nil` if there are none
+  /// (e.g. a feature with null geometry).
+  public var bounds: CoordinateBounds? {
+    var minLatitude: CLLocationDegrees?
+    var maxLatitude: CLLocationDegrees?
+    var minLongitude: CLLocationDegrees?
+    var maxLongitude: CLLocationDegrees?
+
     for coordinate in coordinates {
-      if coordinate.latitude >= maxN || maxN == 0 { maxN = coordinate.latitude }
-      if coordinate.latitude <= maxS || maxS == 0 { maxS = coordinate.latitude }
-      if coordinate.longitude >= maxE || maxE == 0 { maxE = coordinate.longitude }
-      if coordinate.longitude <= maxW || maxW == 0 { maxW = coordinate.longitude }
+      minLatitude = min(minLatitude ?? coordinate.latitude, coordinate.latitude)
+      maxLatitude = max(maxLatitude ?? coordinate.latitude, coordinate.latitude)
+      minLongitude = min(minLongitude ?? coordinate.longitude, coordinate.longitude)
+      maxLongitude = max(maxLongitude ?? coordinate.longitude, coordinate.longitude)
     }
 
-    let maxNE = CLLocationCoordinate2D(latitude: maxN,
-                                       longitude: maxE)
-    let maxSW =  CLLocationCoordinate2D(latitude: maxS,
-                                        longitude: maxW)
-    let bounds = CoordinateBounds(southwest: maxSW,
-                                  northeast: maxNE)
-    return bounds
+    guard let minLatitude, let maxLatitude, let minLongitude, let maxLongitude else { return nil }
+
+    return CoordinateBounds(
+      southwest: CLLocationCoordinate2D(latitude: minLatitude, longitude: minLongitude),
+      northeast: CLLocationCoordinate2D(latitude: maxLatitude, longitude: maxLongitude))
   }
 
   private func bounds(topOffset: Double,
                       bottomOffset: Double,
                       leftoffset: Double,
-                      rightOffset: Double) -> CoordinateBounds {
-    var maxN = CLLocationDegrees(),
-        maxS = CLLocationDegrees(),
-        maxE = CLLocationDegrees(),
-        maxW = CLLocationDegrees()
+                      rightOffset: Double) -> CoordinateBounds? {
+    guard let bounds else { return nil }
 
-    for coordinate in coordinates {
-      if coordinate.latitude >= maxN || maxN == 0 { maxN = coordinate.latitude }
-      if coordinate.latitude <= maxS || maxS == 0 { maxS = coordinate.latitude }
-      if coordinate.longitude >= maxE || maxE == 0 { maxE = coordinate.longitude }
-      if coordinate.longitude <= maxW || maxW == 0 { maxW = coordinate.longitude }
-    }
-
-    let maxNE =
-    CLLocationCoordinate2D(latitude: maxN,
-                           longitude: maxE)
-    .movedBy(latitudinalMeters: topOffset,
-             longitudinalMeters: leftoffset)
-    let maxSW =
-    CLLocationCoordinate2D(latitude: maxS,
-                           longitude: maxW)
-    .movedBy(latitudinalMeters: bottomOffset,
-             longitudinalMeters: rightOffset)
-    let bounds = CoordinateBounds(southwest: maxSW,
-                                  northeast: maxNE)
-    return bounds
+    let maxNE = bounds.northeast
+      .movedBy(latitudinalMeters: topOffset,
+               longitudinalMeters: leftoffset)
+    let maxSW = bounds.southwest
+      .movedBy(latitudinalMeters: bottomOffset,
+               longitudinalMeters: rightOffset)
+    return CoordinateBounds(southwest: maxSW,
+                            northeast: maxNE)
   }
 
   public func region(topOffset: Double,
                      bottomOffset: Double,
                      leftoffset: Double,
                      rightOffset: Double) -> MKCoordinateRegion? {
-    let boundsWithOffset = bounds(topOffset: topOffset,
-                                  bottomOffset: bottomOffset,
-                                  leftoffset: leftoffset,
-                                  rightOffset: rightOffset)
-
+    guard let boundsWithOffset = bounds(topOffset: topOffset,
+                                        bottomOffset: bottomOffset,
+                                        leftoffset: leftoffset,
+                                        rightOffset: rightOffset) else { return nil }
 
     return MKCoordinateRegion(coordinates: [boundsWithOffset.northeast, boundsWithOffset.southwest])
   }
 
   public var region: MKCoordinateRegion? {
+    guard let bounds else { return nil }
     return MKCoordinateRegion(coordinates: [bounds.northeast, bounds.southwest])
     // This is too snug
     // return MKCoordinateRegion(coordinates: coordinates)
@@ -292,6 +262,12 @@ extension GeoJSONSourceData: Equatable {
       return lhsURL == rhsURL
     case (let .feature(lhsFeature), let .feature(rhsFeature)):
       return lhsFeature == rhsFeature
+    case (let .featureCollection(lhsCollection), let .featureCollection(rhsCollection)):
+      return lhsCollection == rhsCollection
+    case (let .geometry(lhsGeometry), let .geometry(rhsGeometry)):
+      return lhsGeometry == rhsGeometry
+    case (.empty, .empty):
+      return true
     default:
       return false
     }
@@ -460,14 +436,7 @@ extension Turf.MultiLineString {
 
 extension Turf.Polygon {
   var overlay: MKOverlay {
-    let interiorOverlays = self.innerRings.map({
-      MKPolygon(coordinates: $0.coordinates, count: $0.coordinates.count)
-    })
-    let overlay = MKPolygon(
-      coordinates: self.outerRing.coordinates,
-      count: self.outerRing.coordinates.count,
-      interiorPolygons: interiorOverlays)
-    return overlay
+    mkPolygon
   }
 }
 

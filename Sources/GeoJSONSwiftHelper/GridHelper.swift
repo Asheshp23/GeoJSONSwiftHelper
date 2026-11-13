@@ -188,25 +188,9 @@ public struct GridHelper {
                         bearingRadians: hLineMvmtDirection)
 
     let coords = [tl, tr, bl, br, tl]
-    let geoJSONString = createGeoJSONString(from: coords)
-    guard let geoJSONObject = GeoJSONObject.create(from: geoJSONString ?? "") else { return GridPolygonOverlay() }
-
-    return GridPolygonOverlay.create(geoJSONObject)
-  }
-
-  static private func createGeoJSONString(from coordinates: [CLLocationCoordinate2D]) -> String? {
-    let polygon = Turf.Polygon([coordinates])
-    let geometry = Turf.Geometry(polygon)
-    let feature = Turf.Feature(geometry: geometry)
-    do {
-      let data = try JSONEncoder().encode(feature)
-      if let geoJSONString = String(bytes: data, encoding: .utf8) {
-        return geoJSONString
-      }
-    } catch let error as NSError {
-      print(error.localizedDescription)
-    }
-    return nil
+    let overlay = GridPolygonOverlay()
+    overlay.boundary = Turf.MultiPolygon([Turf.Polygon([coords])])
+    return overlay
   }
 
   public class GridPolygonOverlay: MKPolygon, Identifiable, Comparable {
@@ -267,7 +251,6 @@ public struct GridHelper {
         if let boundaryData = boundaryGeoJSON.data(using: .utf8) {
           let boundaryGeoJSONObj = try jsonDecoder.decode(GEOSwift.GeoJSON.self, from: boundaryData)
 
-          var intersectedGeometry: GEOSwift.Geometry? = nil
           var boundaryGeometries: [GEOSwift.Geometry?] = []
 
           switch boundaryGeoJSONObj {
@@ -278,20 +261,21 @@ public struct GridHelper {
           case .geometry(let geometry):
             boundaryGeometries = [geometry]
           }
-          boundaryGeometries.forEach { boundaryGeometry in
-            /// 2. Find intersection
-            if let boundaryGeometry = boundaryGeometry {
-              // we assume grid cell overlays are always geometries
-              switch cellGeoJSONObj {
-              case .geometry(let geometry):
-                if let overlap = try? geometry.intersection(with: boundaryGeometry) {
-                  intersectedGeometry = overlap
-                }
-              default:
-                print("Grid cell is not a geometry")
-              }
-            }
+
+          // we assume grid cell overlays are always geometries
+          guard case .geometry(let cellGeometry) = cellGeoJSONObj else {
+            print("Grid cell is not a geometry")
+            return nil
           }
+
+          /// 2. Find intersection with every boundary feature and union the overlaps,
+          /// so a cell spanning several features keeps all of its overlapping parts.
+          let overlaps = boundaryGeometries
+            .compactMap { $0 }
+            .compactMap { try? cellGeometry.intersection(with: $0) }
+          guard let firstOverlap = overlaps.first else { return nil }
+          let intersectedGeometry = try overlaps.dropFirst().reduce(firstOverlap) { try $0.union(with: $1) }
+
           /// 3. Convert intersection geometry to a GridPolygonOverlay
           ///
           ///
